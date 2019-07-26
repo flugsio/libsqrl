@@ -3,7 +3,16 @@ name = "libsqrl"
 version = "0.1.0"
 authors = ["Jimmie Elvenmark <flugsio@gmail.com>"]
 edition = "2018"
+description = "(WIP) SQRL Authentication Library in Rust https://www.grc.com/sqrl/sqrl.htm"
+license = "MIT"
+license-file = "LICENSE"
+documentation = "https://github.com/flugsio/libsqrl"
+homepage = "https://github.com/flugsio/libsqrl"
+repository = "https://github.com/flugsio/libsqrl"
 
 [dependencies]
 nom = "5.0.0"
 base64 = "0.10.1"
+
+[badges]
+travis-ci = { repository = "flugsio/libsqrl", branch = "master" }
