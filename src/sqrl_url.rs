@@ -29,7 +29,7 @@ impl SqrlUrl {
 
     /// x query parameter, specifies the maximum extra path for auth_domain
     fn x(&self) -> Option<usize> {
-        self.parsed_query.get("x").map(|i| usize::from_str_radix(i, 10).ok()).flatten()
+        self.parsed_query.get("x").and_then(|i| usize::from_str_radix(i, 10).ok())
     }
 
     /// nut query parameter
