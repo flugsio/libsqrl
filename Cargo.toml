@@ -13,6 +13,7 @@ repository = "https://github.com/flugsio/libsqrl"
 [dependencies]
 nom = "5.0.0"
 base64 = "0.10.1"
+url = "2.1.1"
 
 [badges]
 travis-ci = { repository = "flugsio/libsqrl", branch = "master" }

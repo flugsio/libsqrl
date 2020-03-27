@@ -3,3 +3,5 @@
 // https://sqrlauth.net/Main_Page
 // https://sqrlid.com/libsqrl/index.html
 pub mod storage;
+pub mod client;
+pub mod sqrl_url;
