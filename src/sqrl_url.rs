@@ -1,6 +1,7 @@
 use url::{Url, ParseError};
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct SqrlUrl {
     pub original: String,
     pub url: Url,
@@ -37,6 +38,13 @@ impl SqrlUrl {
         //self.parsed_query.get("nut").map(|nut| nut.clone())
         self.parsed_query.get("nut")
     }
+
+    /// cancel query parameter
+    pub fn can(&self) -> Option<String> {
+        self.parsed_query.get("can").map(|input|
+            String::from_utf8(base64::decode_config(&input, base64::URL_SAFE).unwrap()).unwrap()
+        )
+    }
 }
 
 #[cfg(test)]
@@ -63,6 +71,14 @@ mod tests {
     fn it_parses_the_nut() {
         // TODO: check the nut
         assert_eq!(super::SqrlUrl::parse("sqrl://EXAMPLE.COM/JIMBO?x=16&nut=...").nut(), Some(&"...".to_string()));
+        assert_eq!(super::SqrlUrl::parse("sqrl://EXAMPLE.COM/JIMBO?x=16&nut=ailsdjfasjdflij42l2j4rl234jrl23rj").nut(), Some(&"ailsdjfasjdflij42l2j4rl234jrl23rj".to_string()));
+    }
+
+    #[test]
+    fn it_parses_the_can() {
+        // TODO: check the can parameter some more
+        assert_eq!(super::SqrlUrl::parse("sqrl://EXAMPLE.COM/JIMBO?x=16&nut=...").can(), None);
+        assert_eq!(super::SqrlUrl::parse("sqrl://EXAMPLE.COM/JIMBO?x=16&nut=...&can=aHR0cHM6Ly9zcXJsLmdyYy5jb20vZGVtbw").can(), Some("https://sqrl.grc.com/demo".to_string()));
     }
 
 }

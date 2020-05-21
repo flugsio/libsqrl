@@ -7,6 +7,7 @@ use nom::{count, call, switch, do_parse, take, IResult, many0, many_m_n, complet
 use nom::combinator::peek;
 use nom::number::streaming::{le_u8, le_u16, le_u32};
 
+#[derive(Debug)]
 pub struct S4 {
     pub blocks: Vec<Block>,
 }
