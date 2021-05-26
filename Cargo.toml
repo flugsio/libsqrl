@@ -13,6 +13,10 @@ repository = "https://github.com/flugsio/libsqrl"
 nom = "5.1.1"
 base64 = "0.12.1"
 url = "2.1.1"
+scrypt = { version = "0.7.0", default-features = false }
+# this doesn't have aes256gcm yet
+#sodiumoxide = "0.2.6"
+sodiumoxide = { git = "https://github.com/sodiumoxide/sodiumoxide", branch = "master" }
 
 [badges]
 travis-ci = { repository = "flugsio/libsqrl", branch = "master" }
