@@ -10,20 +10,12 @@ pub mod sqrl_url;
 //   make_public_key
 //   sign
 
+use sodiumoxide::crypto::sign;
 use url::{Url, ParseError};
 pub struct Sqrl64 {
     pub string: String,
     pub base64: String,
 }
-pub struct SignedQuery {
-    parameters: QueryParameters,
-}
-pub struct QueryParameters {
-    client: ClientParameters,
-    server: Sqrl64,
-    ids: String,
-}
-
 impl Sqrl64 {
     pub fn from_base64(base64: &str) -> Sqrl64 {
         Sqrl64 {
@@ -47,6 +39,9 @@ impl Sqrl64 {
     }
 }
 
+pub struct SignedQuery {
+    parameters: QueryParameters,
+}
 impl SignedQuery {
     // pub fn new() -> SignedQuery {
     //     SignedQuery {}
@@ -66,7 +61,20 @@ impl SignedQuery {
 
 }
 
+pub struct QueryParameters {
+    client: ClientParameters,
+    server: Sqrl64,
+    ids: String,
+}
+
 impl QueryParameters {
+    pub fn new(server: &str, client: ClientParameters) -> QueryParameters {
+        QueryParameters {
+            server: Sqrl64::from_string(server),
+            client: client,
+            ids: "".to_string(),
+        }
+    }
 
     fn data_to_sign(&self) -> String {
         format!("{}{}",
@@ -98,18 +106,18 @@ pub struct ClientParameters {
     // Identiy Master Key (IMK) by the HMAC hash of the site's
     // effective domain name. The binary key is base64url encoded
     // with trailing equals sign padding removed
-    idk: String,
+    idk: sign::PublicKey,
     // optional params
     // opt,btn,pidk,ins,pins,suk,vuk
     params: Vec<(String, String)>,
 }
 
 impl ClientParameters {
-    pub fn new(command: ClientCommand, idk: &str) -> ClientParameters {
+    pub fn new(command: ClientCommand, idk: sign::PublicKey) -> ClientParameters {
         ClientParameters {
             versions: [1].to_vec(),
             command: command,
-            idk: idk.to_string(),
+            idk: idk,
             params: Vec::new(),
         }
     }

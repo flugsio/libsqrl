@@ -85,6 +85,7 @@ pub enum Block {
 
 impl Block {
     pub fn parse(input: &[u8]) -> IResult<&[u8], Block, ()> {
+        //let (_i, (length, block_type)): tuple!(input.clone(), le_u16, le_u16);
         do_parse!(
             input,
             length: le_u16 >>
@@ -252,8 +253,8 @@ impl S4 {
     }
 
     // TODO: remove this
-    pub fn enscrypted_password(&self, password: &[u8]) -> Vec<u8> {
-        let mut enscrypted_password = vec![0u8, 32];
+    pub fn imk(&self, password: &[u8]) -> Vec<u8> {
+        let mut imk = vec![0u8, 32];
         for block in &self.blocks {
             // dbg!(block.clone());
             match block {
@@ -276,7 +277,7 @@ impl S4 {
                         result.iter_mut().zip(output.iter()).for_each(|(x1, x2)| *x1 ^= *x2);
                     }
                     // println!("{:02x?}", &result);
-                    enscrypted_password = result;
+                    let enscrypted_password = result;
                     sodiumoxide::init();
                     use sodiumoxide::crypto::aead::aes256gcm;
                     use std::convert::TryInto;
@@ -286,16 +287,17 @@ impl S4 {
                     let tag = aes256gcm::Tag(verification_tag.as_slice().try_into().expect("tag slice with incorrect length"));
 
                     let mut keys = keys.clone();
-                    //let mut decrypted = encrypted_identity_master_key.clone();
-                    //decrypted.append(&mut encrypted_identity_lock_key.clone());
                     aes.open_detached(&mut keys, Some(data), &tag, &nonce, &key).unwrap();
                     println!("{:?}", keys);
+                    let inp: &[u8] = keys.as_slice();
+                    let result: IResult<&[u8], (Vec<u8>, Vec<u8>), ()> = nom::tuple!(inp, count!(le_u8, 32), count!(le_u8, 32));
+                    imk = result.clone().unwrap().1.0;
                 },
                 _ => ()
             };
         };
 
-        enscrypted_password
+        imk
     }
 }
 
