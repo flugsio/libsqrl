@@ -1,9 +1,13 @@
-use url::{Url, ParseError};
+use url::Url;
 use std::collections::HashMap;
+
+use crate::util;
 
 #[derive(Debug)]
 pub struct SqrlUrl {
     pub original: String,
+    pub domain: String,
+    pub url_resource: String,
     pub url: Url,
     pub parsed_query: HashMap<String, String>,
 }
@@ -15,6 +19,8 @@ impl SqrlUrl {
 
         SqrlUrl {
             original: url.to_string(),
+            domain: url.domain().unwrap().to_string(),
+            url_resource: url[url::Position::BeforePath..].to_string(),
             url: url,
             parsed_query: parsed_query,
         }
@@ -41,9 +47,7 @@ impl SqrlUrl {
 
     /// cancel query parameter
     pub fn can(&self) -> Option<String> {
-        self.parsed_query.get("can").map(|input|
-            String::from_utf8(base64::decode_config(&input, base64::URL_SAFE).unwrap()).unwrap()
-        )
+        self.parsed_query.get("can").map(|input| util::decode64(input))
     }
 }
 

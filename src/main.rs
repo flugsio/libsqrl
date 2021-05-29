@@ -3,11 +3,16 @@
 pub fn main() {
     let s4 = libsqrl::storage::S4::new(&BINARY);
     let password = b"the password";
-    let mut imk = s4.imk(password);
-    println!("{:02x?}", imk);
-    let url = "sqrl://sqrl.grc.com/cli.sqrl?nut=testnut&can=something";
-    let client = libsqrl::client::Client::new();
-    client.open(url, imk);
+    let imk = s4.imk(password);
+
+    let args: Vec<String> = std::env::args().collect();
+    match args.get(1) {
+        Some(url) => {
+            let mut client = libsqrl::client::Client::new(url);
+            client.open(imk);
+        },
+        None => println!("No url passed")
+    }
 }
 const BINARY: [u8; 356] =
     [115, 113, 114, 108, 100, 97, 116, 97, 125, 0, 1, 0, 45, 0, 192, 52, 118, 104, 170, 33, 53,

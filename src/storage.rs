@@ -6,6 +6,9 @@
 use nom::{count, call, switch, do_parse, take, IResult, many0, many_m_n, complete};
 use nom::combinator::peek;
 use nom::number::streaming::{le_u8, le_u16, le_u32};
+use std::convert::TryInto;
+
+use crate::util;
 
 #[derive(Debug)]
 pub struct S4 {
@@ -194,6 +197,7 @@ impl Block {
     }
 
     // TEMP: for crude testing purposes
+    #[allow(dead_code)]
     fn length(&self) -> u16 {
         match self {
             Block::BlockTypeUnknown { length, .. } => *length,
@@ -204,6 +208,7 @@ impl Block {
     }
 
     // TEMP: for crude testing purposes
+    #[allow(dead_code)]
     fn block_type(&self) -> u16 {
         match self {
             Block::BlockTypeUnknown { block_type, .. } => *block_type,
@@ -224,7 +229,7 @@ impl S4 {
     fn decode_from_header(data: &[u8]) -> Vec<u8> {
         match S4::signature(&data) {
             Ok((binary, b"sqrldata")) => binary.to_vec(),
-            Ok((base64, b"SQRLDATA")) => S4::base64url_to_binary(&base64),
+            Ok((base64, b"SQRLDATA")) => util::decode64(&S4::strip_whitespace(base64)).as_bytes().to_vec(),
             _ => panic!("Not a valid SQRL header"),
         }
     }
@@ -233,15 +238,14 @@ impl S4 {
         take!(input, 8)
     }
 
-    fn base64url_to_binary(input: &[u8]) -> Vec<u8> {
+    fn strip_whitespace(input: &[u8]) -> Vec<u8> {
         // To aid in the exchange of SQRL data during development — posting on forums, etc. —
         // base64url-illegal line ending and whitespace characters — CR, LF, TAB and SPACE —
         // should be silently ignored for line wrap tolerance.
-        let input: Vec<u8> = input.to_vec()
+        input.to_vec()
             .into_iter()
             .filter(|b| !b"\n\r\t \x0b\x0c".contains(b))
-            .collect();
-        base64::decode_config(&input, base64::URL_SAFE).unwrap()
+            .collect()
     }
 
     fn blocks(input: &[u8]) -> IResult<&[u8], Vec<Block>, ()> {
@@ -256,15 +260,13 @@ impl S4 {
     pub fn imk(&self, password: &[u8]) -> Vec<u8> {
         let mut imk = vec![0u8, 32];
         for block in &self.blocks {
-            // dbg!(block.clone());
             match block {
-                //Block::BlockType1 { scrypt_random_salt, scrypt_log_n_factor, scrypt_iteration_count, aes_gcm_iv, encrypted_identity_master_key, encrypted_identity_lock_key, verification_tag, .. } => {
                 Block::BlockType1 { 
-                data, keys, length, block_type, pt_length, aes_gcm_iv,
+                data, keys, /*length, block_type, pt_length, */aes_gcm_iv,
                 scrypt_random_salt, scrypt_log_n_factor, scrypt_iteration_count,
-                option_flags, hint_length, pw_verify_sec, idle_timeout_min,
-                encrypted_identity_master_key, encrypted_identity_lock_key,
-                verification_tag } => {
+                /*option_flags, hint_length, pw_verify_sec, idle_timeout_min,
+                encrypted_identity_master_key, encrypted_identity_lock_key,*/
+                verification_tag, .. } => {
                     let params = scrypt::Params::new(*scrypt_log_n_factor, 256, 1).unwrap();
                     let mut output: Vec<u8> = vec![0u8; 32];
                     let mut result;
@@ -272,15 +274,12 @@ impl S4 {
                     result = output.clone();
 
                     for _n in 1..*scrypt_iteration_count {
-                        // println!("{:02x?}", &result);
                         scrypt::scrypt(password, &output.clone(), &params, &mut output).unwrap();
                         result.iter_mut().zip(output.iter()).for_each(|(x1, x2)| *x1 ^= *x2);
                     }
-                    // println!("{:02x?}", &result);
                     let enscrypted_password = result;
-                    sodiumoxide::init();
+                    sodiumoxide::init().unwrap();
                     use sodiumoxide::crypto::aead::aes256gcm;
-                    use std::convert::TryInto;
                     let aes = aes256gcm::Aes256Gcm::new().unwrap();
                     let nonce = aes256gcm::Nonce(aes_gcm_iv.as_slice().try_into().expect("nonce slice with incorrect length"));
                     let key = aes256gcm::Key(enscrypted_password.as_slice().try_into().expect("key slice with incorrect length"));
@@ -288,7 +287,6 @@ impl S4 {
 
                     let mut keys = keys.clone();
                     aes.open_detached(&mut keys, Some(data), &tag, &nonce, &key).unwrap();
-                    println!("{:?}", keys);
                     let inp: &[u8] = keys.as_slice();
                     let result: IResult<&[u8], (Vec<u8>, Vec<u8>), ()> = nom::tuple!(inp, count!(le_u8, 32), count!(le_u8, 32));
                     imk = result.clone().unwrap().1.0;
